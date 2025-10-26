@@ -378,6 +378,11 @@ class BrowserUseServer:
 								'type': 'number',
 								'description': 'LLM temperature (0.0-1.0)',
 							},
+							# Authentication (required to prevent API abuse)
+							'firebase_token': {
+								'type': 'string',
+								'description': 'Firebase ID token for authentication (required to prevent API abuse of public repository)',
+							},
 							# Browser profile settings (can override config.json)
 							'user_data_dir': {
 								'type': 'string',
@@ -396,7 +401,7 @@ class BrowserUseServer:
 								'description': 'Keep browser open after task completes',
 							},
 						},
-						'required': ['task'],
+						'required': ['task', 'firebase_token'],
 					},
 				),
 				# Browser session management tools
@@ -473,6 +478,7 @@ class BrowserUseServer:
 				use_vision=arguments.get('use_vision', True),
 				# LLM overrides (model is hardcoded to o3-azure, api_key not needed - using proxy)
 				temperature=arguments.get('temperature'),
+				firebase_token=arguments.get('firebase_token'),  # Firebase auth token from frontend
 				# Profile overrides
 				user_data_dir=arguments.get('user_data_dir'),
 				profile_directory=arguments.get('profile_directory'),
@@ -601,6 +607,7 @@ class BrowserUseServer:
 		use_vision: bool = True,
 		# LLM settings (override config.json)
 		temperature: float | None = None,
+		firebase_token: str | None = None,  # REQUIRED: Firebase ID token for authentication
 		# Browser profile settings (override config.json)
 		user_data_dir: str | None = None,
 		profile_directory: str | None = None,
@@ -635,20 +642,37 @@ class BrowserUseServer:
 
 			print(f"🔒 [MCP] Using SnowX API proxy at {proxy_base_url}/chat/completions", file=sys.stderr)
 
+			# AUTHENTICATION: Validate Firebase token is provided
+			if not firebase_token:
+				raise ValueError("firebase_token is required for browser automation (prevents API abuse)")
+
+			print(f"🔐 [MCP] Authenticating with Firebase token (preview: {firebase_token[:20]}...)", file=sys.stderr)
+
 			# Hardcoded to o3-azure - the only model available for internal MCP use
 			llm_model = 'o3'
 
 			# Priority: argument > config.json > default
 			llm_temperature = temperature if temperature is not None else llm_config.get('temperature', 0.7)
 
+			# Create httpx client with Authorization header
+			import httpx
+
+			http_client = httpx.AsyncClient(
+				timeout=300.0,  # 5 minute timeout for browser automation
+				headers={
+					'Authorization': f'Bearer {firebase_token}',  # Firebase ID token for backend auth
+				},
+			)
+
 			llm = ChatOpenAI(
 				model=llm_model,
 				api_key='not-needed',  # Not needed since we're using proxy
 				base_url=proxy_base_url,  # Use SnowX API proxy
 				temperature=llm_temperature,
+				http_client=http_client,  # Custom client with Firebase auth header
 			)
 
-			print(f"✅ [MCP] LLM configured to use SnowX proxy (model: o3-azure)", file=sys.stderr)
+			print(f"✅ [MCP] LLM configured to use SnowX proxy (model: o3-azure) with Firebase authentication", file=sys.stderr)
 
 		# Get profile config and merge with tool parameters (arguments override config.json)
 		profile_config = get_default_profile(self.config)
