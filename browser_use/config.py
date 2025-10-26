@@ -497,9 +497,28 @@ def load_browser_use_config() -> dict[str, Any]:
 
 def get_default_profile(config: dict[str, Any]) -> dict[str, Any]:
 	"""Get default browser profile from config dict."""
-	return config.get('browser_profile', {})
+	import sys
+	# config['browser_profile'] is already the extracted profile dict from _load_config()
+	# Just remove metadata fields that aren't valid BrowserProfile fields
+	profile = config.get('browser_profile', {})
+	print(f"🔍 [CONFIG] Raw profile from config: {profile}", file=sys.stderr)
+	if isinstance(profile, dict):
+		clean_profile = {k: v for k, v in profile.items() if k not in ['id', 'default', 'created_at']}
+		print(f"✅ [CONFIG] Clean profile (metadata removed): {clean_profile}", file=sys.stderr)
+		return clean_profile
+	print(f"⚠️ [CONFIG] Profile is not a dict, returning empty: {type(profile)}", file=sys.stderr)
+	return {}
 
 
 def get_default_llm(config: dict[str, Any]) -> dict[str, Any]:
 	"""Get default LLM config from config dict."""
-	return config.get('llm', {})
+	import sys
+	# config['llm'] is already the extracted LLM dict from _load_config()
+	llm = config.get('llm', {})
+	print(f"🔍 [CONFIG] Raw LLM from config: {llm}", file=sys.stderr)
+	if isinstance(llm, dict):
+		clean_llm = {k: v for k, v in llm.items() if k not in ['id', 'default', 'created_at']}
+		print(f"✅ [CONFIG] Clean LLM (metadata removed): {clean_llm}", file=sys.stderr)
+		return clean_llm
+	print(f"⚠️ [CONFIG] LLM is not a dict, returning empty: {type(llm)}", file=sys.stderr)
+	return {}

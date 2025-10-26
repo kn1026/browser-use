@@ -113,15 +113,18 @@ def _ensure_all_loggers_use_stderr():
 		stderr_handler = logging.StreamHandler(sys.stderr)
 		stderr_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 
-	# Configure root logger
+	# Configure root logger - respect BROWSER_USE_LOG_LEVEL
+	log_level_str = os.environ.get('BROWSER_USE_LOG_LEVEL', 'CRITICAL').upper()
+	log_level = getattr(logging, log_level_str, logging.CRITICAL)
+
 	logging.root.handlers = [stderr_handler]
-	logging.root.setLevel(logging.CRITICAL)
+	logging.root.setLevel(log_level)
 
 	# Configure all existing loggers
 	for name in list(logging.root.manager.loggerDict.keys()):
 		logger_obj = logging.getLogger(name)
 		logger_obj.handlers = [stderr_handler]
-		logger_obj.setLevel(logging.CRITICAL)
+		logger_obj.setLevel(log_level)
 		logger_obj.propagate = False
 
 
@@ -614,13 +617,16 @@ class BrowserUseServer:
 
 		# Get profile config and merge with tool parameters
 		profile_config = get_default_profile(self.config)
+		print(f"🔧 [MCP] Profile config from get_default_profile: {profile_config}", file=sys.stderr)
 
 		# Override allowed_domains if provided in tool call
 		if allowed_domains is not None:
 			profile_config['allowed_domains'] = allowed_domains
 
 		# Create browser profile using config
+		print(f"🚀 [MCP] Creating BrowserProfile with config: {profile_config}", file=sys.stderr)
 		profile = BrowserProfile(**profile_config)
+		print(f"📋 [MCP] BrowserProfile created - user_data_dir: {profile.user_data_dir}, keep_alive: {profile.keep_alive}", file=sys.stderr)
 
 		# Create and run agent
 		agent = Agent(

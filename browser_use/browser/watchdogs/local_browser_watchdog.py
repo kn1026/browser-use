@@ -42,31 +42,69 @@ class LocalBrowserWatchdog(BaseWatchdog):
 	_owns_browser_resources: bool = PrivateAttr(default=True)
 	_temp_dirs_to_cleanup: list[Path] = PrivateAttr(default_factory=list)
 	_original_user_data_dir: str | None = PrivateAttr(default=None)
+	_source_profile_path: Path | None = PrivateAttr(default=None)  # For syncing credentials back
+	_temp_profile_path: Path | None = PrivateAttr(default=None)  # For syncing credentials back
 
 	@observe_debug(ignore_input=True, ignore_output=True, name='browser_launch_event')
 	async def on_BrowserLaunchEvent(self, event: BrowserLaunchEvent) -> BrowserLaunchResult:
 		"""Launch a local browser process."""
+		import sys
+		print(f"🎯 [WATCHDOG] on_BrowserLaunchEvent called", file=sys.stderr)
 
 		try:
-			self.logger.debug('[LocalBrowserWatchdog] Received BrowserLaunchEvent, launching local browser...')
-
-			# self.logger.debug('[LocalBrowserWatchdog] Calling _launch_browser...')
+			print(f"🔧 [WATCHDOG] Calling _launch_browser()...", file=sys.stderr)
 			process, cdp_url = await self._launch_browser()
 			self._subprocess = process
-			# self.logger.debug(f'[LocalBrowserWatchdog] _launch_browser returned: process={process}, cdp_url={cdp_url}')
+			print(f"✅ [WATCHDOG] _launch_browser returned: cdp_url={cdp_url}", file=sys.stderr)
 
 			return BrowserLaunchResult(cdp_url=cdp_url)
 		except Exception as e:
+			print(f"❌ [WATCHDOG] Exception in on_BrowserLaunchEvent: {e}", file=sys.stderr)
 			self.logger.error(f'[LocalBrowserWatchdog] Exception in on_BrowserLaunchEvent: {e}', exc_info=True)
 			raise
 
 	async def on_BrowserKillEvent(self, event: BrowserKillEvent) -> None:
 		"""Kill the local browser subprocess."""
+		import sys
 		self.logger.debug('[LocalBrowserWatchdog] Killing local browser process')
 
 		if self._subprocess:
 			await self._cleanup_process(self._subprocess)
 			self._subprocess = None
+
+		# Sync credentials back to original profile before cleanup
+		if self._source_profile_path and self._temp_profile_path:
+			print(f"🔄 [WATCHDOG] Syncing credentials back to original profile...", file=sys.stderr)
+
+			essential_files = [
+				'Cookies',
+				'Login Data',
+				'Web Data',
+				'Bookmarks',
+				'Preferences',
+				'History',
+			]
+
+			synced_count = 0
+			for filename in essential_files:
+				temp_file = self._temp_profile_path / filename
+				source_file = self._source_profile_path / filename
+
+				if temp_file.exists():
+					try:
+						# Ensure source directory exists
+						source_file.parent.mkdir(parents=True, exist_ok=True)
+						shutil.copy2(temp_file, source_file)
+						synced_count += 1
+						print(f"  ✓ Synced {filename} back", file=sys.stderr)
+					except Exception as e:
+						print(f"  ⚠ Failed to sync {filename}: {e}", file=sys.stderr)
+
+			print(f"✅ [WATCHDOG] Synced {synced_count}/{len(essential_files)} files back to original profile", file=sys.stderr)
+
+			# Clear the paths
+			self._source_profile_path = None
+			self._temp_profile_path = None
 
 		# Clean up temp directories if any were created
 		for temp_dir in self._temp_dirs_to_cleanup:
@@ -103,14 +141,104 @@ class LocalBrowserWatchdog(BaseWatchdog):
 
 		for attempt in range(max_retries):
 			try:
+				import sys
+				print(f"🔄 [WATCHDOG] Launch attempt {attempt + 1}/{max_retries}", file=sys.stderr)
+
+				# If using a real profile (not temp), disable default extensions to prevent CDP timeout
+				if profile.user_data_dir and not str(profile.user_data_dir).startswith('/tmp') and not 'browseruse-tmp-' in str(profile.user_data_dir):
+					print(f"🔧 [WATCHDOG] Real profile detected, disabling default extensions", file=sys.stderr)
+					profile.enable_default_extensions = False
+
+					# Chrome requires CDP to use a non-default data directory
+					# Check if user_data_dir is the system default Chrome location
+					import platform
+					system = platform.system()
+					default_chrome_dirs = []
+					if system == 'Darwin':  # macOS
+						default_chrome_dirs = [
+							str(Path.home() / 'Library' / 'Application Support' / 'Google' / 'Chrome'),
+							str(Path.home() / 'Library' / 'Application Support' / 'Chromium'),
+						]
+					elif system == 'Linux':
+						default_chrome_dirs = [
+							str(Path.home() / '.config' / 'google-chrome'),
+							str(Path.home() / '.config' / 'chromium'),
+						]
+					elif system == 'Windows':
+						default_chrome_dirs = [
+							str(Path.home() / 'AppData' / 'Local' / 'Google' / 'Chrome' / 'User Data'),
+							str(Path.home() / 'AppData' / 'Local' / 'Chromium' / 'User Data'),
+						]
+
+					user_data_path = Path(profile.user_data_dir).resolve()
+					is_default_location = any(user_data_path == Path(d).resolve() for d in default_chrome_dirs)
+
+					if is_default_location:
+						print(f"⚠️ [WATCHDOG] Profile is in default Chrome directory, CDP requires non-default location", file=sys.stderr)
+						print(f"📋 [WATCHDOG] Copying profile to temp directory for CDP compatibility...", file=sys.stderr)
+
+						# Create a temp directory for the profile copy
+						temp_profile_dir = Path(tempfile.mkdtemp(prefix='browseruse-profile-'))
+						self._temp_dirs_to_cleanup.append(temp_profile_dir)
+
+						# Copy only essential credential files instead of entire profile
+						# to avoid lock files and other incompatibilities
+						profile_name = getattr(profile, 'profile_directory', 'Default')
+						source_profile = user_data_path / profile_name
+						dest_profile = temp_profile_dir / profile_name
+
+						if source_profile.exists():
+							print(f"📂 [WATCHDOG] Copying essential files from {source_profile}...", file=sys.stderr)
+							dest_profile.mkdir(parents=True, exist_ok=True)
+
+							# Copy only essential files for preserving credentials
+							essential_files = [
+								'Cookies',  # Browser cookies
+								'Login Data',  # Saved passwords
+								'Web Data',  # Autofill data
+								'Bookmarks',  # User bookmarks
+								'Preferences',  # User preferences
+								'History',  # Browsing history
+							]
+
+							copied_count = 0
+							for filename in essential_files:
+								source_file = source_profile / filename
+								if source_file.exists():
+									try:
+										shutil.copy2(source_file, dest_profile / filename)
+										copied_count += 1
+										print(f"  ✓ Copied {filename}", file=sys.stderr)
+									except Exception as e:
+										print(f"  ⚠ Failed to copy {filename}: {e}", file=sys.stderr)
+
+							print(f"✅ [WATCHDOG] Copied {copied_count}/{len(essential_files)} essential files", file=sys.stderr)
+
+							# Store paths for syncing credentials back on cleanup
+							self._source_profile_path = source_profile
+							self._temp_profile_path = dest_profile
+							print(f"📌 [WATCHDOG] Will sync credentials back to {source_profile} on cleanup", file=sys.stderr)
+						else:
+							print(f"⚠️ [WATCHDOG] Source profile {source_profile} not found, using empty profile", file=sys.stderr)
+							dest_profile.mkdir(parents=True, exist_ok=True)
+
+						# Update profile to use the temp location
+						profile.user_data_dir = str(temp_profile_dir)
+						print(f"🔧 [WATCHDOG] Updated user_data_dir to: {temp_profile_dir}", file=sys.stderr)
+
 				# Get launch args from profile
+				print(f"📋 [WATCHDOG] Getting launch args from profile...", file=sys.stderr)
 				launch_args = profile.get_args()
+				print(f"✅ [WATCHDOG] Got {len(launch_args)} launch args", file=sys.stderr)
+				print(f"🔍 [WATCHDOG] Launch args: {launch_args[:10]}...", file=sys.stderr)
 
 				# Add debugging port
 				debug_port = self._find_free_port()
+				print(f"🔌 [WATCHDOG] Using debug port: {debug_port}", file=sys.stderr)
 				launch_args.extend(
 					[
 						f'--remote-debugging-port={debug_port}',
+						'--remote-allow-origins=*',
 					]
 				)
 				assert '--user-data-dir' in str(launch_args), (
@@ -137,25 +265,27 @@ class LocalBrowserWatchdog(BaseWatchdog):
 					raise RuntimeError('No local Chrome/Chromium install found, and failed to install with playwright')
 
 				# Launch browser subprocess directly
-				self.logger.debug(f'[LocalBrowserWatchdog] 🚀 Launching browser subprocess with {len(launch_args)} args...')
-				self.logger.debug(
-					f'[LocalBrowserWatchdog] 📂 user_data_dir={profile.user_data_dir}, profile_directory={profile.profile_directory}'
-				)
+				print(f"🚀 [WATCHDOG] Launching Chrome with {len(launch_args)} args", file=sys.stderr)
+				print(f"📂 [WATCHDOG] user_data_dir={profile.user_data_dir}", file=sys.stderr)
+				print(f"📂 [WATCHDOG] profile_directory={getattr(profile, 'profile_directory', 'NOT SET')}", file=sys.stderr)
+				print(f"🔧 [WATCHDOG] Browser path: {browser_path}", file=sys.stderr)
+
 				subprocess = await asyncio.create_subprocess_exec(
 					browser_path,
 					*launch_args,
 					stdout=asyncio.subprocess.PIPE,
 					stderr=asyncio.subprocess.PIPE,
 				)
-				self.logger.debug(
-					f'[LocalBrowserWatchdog] 🎭 Browser running with browser_pid= {subprocess.pid} 🔗 listening on CDP port :{debug_port}'
-				)
+				print(f"✅ [WATCHDOG] Chrome process started with PID={subprocess.pid}", file=sys.stderr)
+				print(f"🔌 [WATCHDOG] CDP should be on port {debug_port}", file=sys.stderr)
 
 				# Convert to psutil.Process
 				process = psutil.Process(subprocess.pid)
 
 				# Wait for CDP to be ready and get the URL
+				print(f"⏳ [WATCHDOG] Waiting for CDP to be ready on port {debug_port}...", file=sys.stderr)
 				cdp_url = await self._wait_for_cdp_url(debug_port)
+				print(f"✅ [WATCHDOG] Got CDP URL: {cdp_url}", file=sys.stderr)
 
 				# Success! Clean up any temp dirs we created but didn't use
 				for tmp_dir in self._temp_dirs_to_cleanup:

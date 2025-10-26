@@ -504,14 +504,19 @@ class BrowserSession(BaseModel):
 		Returns:
 			Dict with 'cdp_url' key containing the CDP URL
 		"""
+		import sys
+		print(f"🎬 [SESSION] on_BrowserStartEvent called", file=sys.stderr)
 
 		# await self.reset()
 
 		# Initialize and attach all watchdogs FIRST so LocalBrowserWatchdog can handle BrowserLaunchEvent
+		print(f"🔌 [SESSION] Attaching watchdogs...", file=sys.stderr)
 		await self.attach_all_watchdogs()
+		print(f"✅ [SESSION] Watchdogs attached", file=sys.stderr)
 
 		try:
 			# If no CDP URL, launch local browser or cloud browser
+			print(f"🔍 [SESSION] Checking CDP URL: {self.cdp_url}", file=sys.stderr)
 			if not self.cdp_url:
 				if self.browser_profile.use_cloud:
 					# Use cloud browser service
@@ -528,14 +533,20 @@ class BrowserSession(BaseModel):
 						raise CloudBrowserError(f'Failed to create cloud browser: {e}')
 				elif self.is_local:
 					# Launch local browser using event-driven approach
+					print(f"🚀 [SESSION] Launching local browser with profile: user_data_dir={self.browser_profile.user_data_dir}", file=sys.stderr)
+					print(f"🚀 [SESSION] Profile directory: {getattr(self.browser_profile, 'profile_directory', 'NOT SET')}", file=sys.stderr)
 					launch_event = self.event_bus.dispatch(BrowserLaunchEvent())
+					print(f"⏳ [SESSION] Waiting for browser launch event...", file=sys.stderr)
 					await launch_event
+					print(f"✅ [SESSION] Browser launch event completed", file=sys.stderr)
 
 					# Get the CDP URL from LocalBrowserWatchdog handler result
+					print(f"📥 [SESSION] Getting launch result...", file=sys.stderr)
 					launch_result: BrowserLaunchResult = cast(
 						BrowserLaunchResult, await launch_event.event_result(raise_if_none=True, raise_if_any=True)
 					)
 					self.browser_profile.cdp_url = launch_result.cdp_url
+					print(f"✅ [SESSION] Got CDP URL: {launch_result.cdp_url}", file=sys.stderr)
 				else:
 					raise ValueError('Got BrowserSession(is_local=False) but no cdp_url was provided to connect to!')
 
@@ -544,15 +555,19 @@ class BrowserSession(BaseModel):
 			# Only connect if not already connected
 			if self._cdp_client_root is None:
 				# Setup browser via CDP (for both local and remote cases)
+				print(f"🔌 [SESSION] Connecting to CDP: {self.cdp_url}", file=sys.stderr)
 				await self.connect(cdp_url=self.cdp_url)
 				assert self.cdp_client is not None
+				print(f"✅ [SESSION] Connected to CDP successfully", file=sys.stderr)
 
 				# Notify that browser is connected (single place)
+				print(f"📢 [SESSION] Dispatching BrowserConnectedEvent", file=sys.stderr)
 				self.event_bus.dispatch(BrowserConnectedEvent(cdp_url=self.cdp_url))
 			else:
-				self.logger.debug('Already connected to CDP, skipping reconnection')
+				print(f"ℹ️ [SESSION] Already connected to CDP, skipping reconnection", file=sys.stderr)
 
 			# Return the CDP URL for other components
+			print(f"✅ [SESSION] Browser start completed successfully", file=sys.stderr)
 			return {'cdp_url': self.cdp_url}
 
 		except Exception as e:
