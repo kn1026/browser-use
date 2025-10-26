@@ -362,11 +362,6 @@ class BrowserUseServer:
 								'description': 'Maximum number of steps an agent can take.',
 								'default': 100,
 							},
-							'model': {
-								'type': 'string',
-								'description': 'LLM model to use (e.g., gpt-4o, claude-3-opus-20240229)',
-								'default': 'gpt-4o',
-							},
 							'allowed_domains': {
 								'type': 'array',
 								'items': {'type': 'string'},
@@ -378,11 +373,7 @@ class BrowserUseServer:
 								'description': 'Whether to use vision capabilities (screenshots) for the agent',
 								'default': True,
 							},
-							# LLM settings (can override config.json)
-							'api_key': {
-								'type': 'string',
-								'description': 'OpenAI API key (overrides config.json and env var)',
-							},
+							# LLM settings (model=o3-azure is hardcoded, api_key not needed - using SnowX API proxy)
 							'temperature': {
 								'type': 'number',
 								'description': 'LLM temperature (0.0-1.0)',
@@ -478,11 +469,9 @@ class BrowserUseServer:
 			return await self._retry_with_browser_use_agent(
 				task=arguments['task'],
 				max_steps=arguments.get('max_steps', 100),
-				model=arguments.get('model', 'gpt-4o'),
 				allowed_domains=arguments.get('allowed_domains', []),
 				use_vision=arguments.get('use_vision', True),
-				# LLM overrides
-				api_key=arguments.get('api_key'),
+				# LLM overrides (model is hardcoded to o3-azure, api_key not needed - using proxy)
 				temperature=arguments.get('temperature'),
 				# Profile overrides
 				user_data_dir=arguments.get('user_data_dir'),
