@@ -654,22 +654,14 @@ class BrowserUseServer:
 			# Priority: argument > config.json > default
 			llm_temperature = temperature if temperature is not None else llm_config.get('temperature', 0.7)
 
-			# Create httpx client with Authorization header
-			import httpx
-
-			http_client = httpx.AsyncClient(
-				timeout=300.0,  # 5 minute timeout for browser automation
-				headers={
-					'Authorization': f'Bearer {firebase_token}',  # Firebase ID token for backend auth
-				},
-			)
-
+			# IMPORTANT: Use Firebase token as api_key
+			# ChatOpenAI will send this as "Authorization: Bearer {api_key}"
+			# which the backend will validate as a Firebase ID token
 			llm = ChatOpenAI(
 				model=llm_model,
-				api_key='not-needed',  # Not needed since we're using proxy
+				api_key=firebase_token,  # Firebase token - sent as Authorization header
 				base_url=proxy_base_url,  # Use SnowX API proxy
 				temperature=llm_temperature,
-				http_client=http_client,  # Custom client with Firebase auth header
 			)
 
 			print(f"✅ [MCP] LLM configured to use SnowX proxy (model: o3-azure) with Firebase authentication", file=sys.stderr)
