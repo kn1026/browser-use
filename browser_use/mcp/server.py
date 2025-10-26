@@ -608,11 +608,9 @@ class BrowserUseServer:
 		self,
 		task: str,
 		max_steps: int = 100,
-		model: str = 'gpt-4o',
 		allowed_domains: list[str] | None = None,
 		use_vision: bool = True,
 		# LLM settings (override config.json)
-		api_key: str | None = None,
 		temperature: float | None = None,
 		# Browser profile settings (override config.json)
 		user_data_dir: str | None = None,
@@ -641,25 +639,27 @@ class BrowserUseServer:
 				aws_sso_auth=True,
 			)
 		else:
-			# Priority: argument > config.json > env var
-			llm_api_key = api_key or llm_config.get('api_key') or os.getenv('OPENAI_API_KEY')
-			if not llm_api_key:
-				return 'Error: OPENAI_API_KEY not set (provide via api_key argument, config.json, or environment variable)'
+			# Use SnowX API proxy (internal only - o3-azure is the only model available)
+			# This keeps API keys secure on the backend
+			SNOWX_API_BASE_URL = os.getenv('SNOWX_API_URL', 'https://snowx.ai/api-beta/api')
+			proxy_base_url = f'{SNOWX_API_BASE_URL}/browser-use/o3/v1'  # Include /v1 - ChatOpenAI appends /chat/completions
 
-			# Override model if provided in tool call
-			if model != llm_config.get('model', 'gpt-4o'):
-				llm_model = model
-			else:
-				llm_model = llm_config.get('model', 'gpt-4o')
+			print(f"🔒 [MCP] Using SnowX API proxy at {proxy_base_url}/chat/completions", file=sys.stderr)
+
+			# Hardcoded to o3-azure - the only model available for internal MCP use
+			llm_model = 'o3'
 
 			# Priority: argument > config.json > default
 			llm_temperature = temperature if temperature is not None else llm_config.get('temperature', 0.7)
 
 			llm = ChatOpenAI(
 				model=llm_model,
-				api_key=llm_api_key,
+				api_key='not-needed',  # Not needed since we're using proxy
+				base_url=proxy_base_url,  # Use SnowX API proxy
 				temperature=llm_temperature,
 			)
+
+			print(f"✅ [MCP] LLM configured to use SnowX proxy (model: o3-azure)", file=sys.stderr)
 
 		# Get profile config and merge with tool parameters (arguments override config.json)
 		profile_config = get_default_profile(self.config)

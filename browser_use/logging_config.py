@@ -3,9 +3,12 @@ import os
 import sys
 from pathlib import Path
 
-from dotenv import load_dotenv
-
-load_dotenv()
+try:
+	from dotenv import load_dotenv
+	load_dotenv()
+except ImportError:
+	# dotenv is optional
+	pass
 
 from browser_use.config import CONFIG
 

@@ -22,7 +22,7 @@ let config = MCPServerConfig(
     command: uvxPath,
     args: [
         "--python", qualifiedPython.path,
-        "--from", "git+https://github.com/kn1026/browser-use.git",  // ← Custom repo
+        "--from", "git+https://github.com/kn1026/browser-use.git#egg=browser-use[cli]",  // ← Custom repo with CLI extras
         "browser-use",
         "--mcp"
     ],
@@ -37,16 +37,34 @@ let config = MCPServerConfig(
 ### Option 2: Manual Installation
 
 ```bash
-# Install from custom repo
-uvx --from git+https://github.com/kn1026/browser-use.git browser-use --mcp
+# Install from custom repo (IMPORTANT: Use #egg=browser-use[cli] to install CLI extras)
+uvx --python python3.11 --from "git+https://github.com/kn1026/browser-use.git#egg=browser-use[cli]" browser-use --help
+
+# Test MCP mode
+export OPENAI_API_KEY="your-key-here"
+uvx --python python3.11 --from "git+https://github.com/kn1026/browser-use.git#egg=browser-use[cli]" browser-use --mcp
 
 # Or clone and install in editable mode
 git clone https://github.com/kn1026/browser-use.git
 cd browser-use
 python -m venv .venv
 source .venv/bin/activate
-pip install -e .
+pip install -e ".[cli]"  # Important: Include [cli] extras
 ```
+
+### ⚠️ Common Error: "CLI addon is not installed"
+
+If you see this error:
+```
+⚠️ CLI addon is not installed. Please install it with: `pip install "browser-use[cli]"` and try again.
+```
+
+**Fix:** You forgot the `#egg=browser-use[cli]` part in the git URL!
+
+**Wrong:** `--from git+https://github.com/kn1026/browser-use.git`
+**Correct:** `--from "git+https://github.com/kn1026/browser-use.git#egg=browser-use[cli]"`
+
+The `#egg=browser-use[cli]` syntax tells uvx to install the CLI extras when installing from git.
 
 ## 🔧 Usage
 
