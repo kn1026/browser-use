@@ -378,6 +378,32 @@ class BrowserUseServer:
 								'description': 'Whether to use vision capabilities (screenshots) for the agent',
 								'default': True,
 							},
+							# LLM settings (can override config.json)
+							'api_key': {
+								'type': 'string',
+								'description': 'OpenAI API key (overrides config.json and env var)',
+							},
+							'temperature': {
+								'type': 'number',
+								'description': 'LLM temperature (0.0-1.0)',
+							},
+							# Browser profile settings (can override config.json)
+							'user_data_dir': {
+								'type': 'string',
+								'description': 'Chrome user data directory path (e.g., ~/Library/Application Support/Google/Chrome)',
+							},
+							'profile_directory': {
+								'type': 'string',
+								'description': 'Chrome profile name (e.g., Default, Profile 1, Profile 5)',
+							},
+							'headless': {
+								'type': 'boolean',
+								'description': 'Run browser in headless mode',
+							},
+							'keep_alive': {
+								'type': 'boolean',
+								'description': 'Keep browser open after task completes',
+							},
 						},
 						'required': ['task'],
 					},
@@ -455,6 +481,14 @@ class BrowserUseServer:
 				model=arguments.get('model', 'gpt-4o'),
 				allowed_domains=arguments.get('allowed_domains', []),
 				use_vision=arguments.get('use_vision', True),
+				# LLM overrides
+				api_key=arguments.get('api_key'),
+				temperature=arguments.get('temperature'),
+				# Profile overrides
+				user_data_dir=arguments.get('user_data_dir'),
+				profile_directory=arguments.get('profile_directory'),
+				headless=arguments.get('headless'),
+				keep_alive=arguments.get('keep_alive'),
 			)
 
 		# Browser session management tools (don't require active session)
@@ -577,11 +611,19 @@ class BrowserUseServer:
 		model: str = 'gpt-4o',
 		allowed_domains: list[str] | None = None,
 		use_vision: bool = True,
+		# LLM settings (override config.json)
+		api_key: str | None = None,
+		temperature: float | None = None,
+		# Browser profile settings (override config.json)
+		user_data_dir: str | None = None,
+		profile_directory: str | None = None,
+		headless: bool | None = None,
+		keep_alive: bool | None = None,
 	) -> str:
 		"""Run an autonomous agent task."""
 		logger.debug(f'Running agent task: {task}')
 
-		# Get LLM config
+		# Get LLM config (use arguments first, fallback to config.json)
 		llm_config = get_default_llm(self.config)
 
 		# Get LLM provider
@@ -599,9 +641,10 @@ class BrowserUseServer:
 				aws_sso_auth=True,
 			)
 		else:
-			api_key = llm_config.get('api_key') or os.getenv('OPENAI_API_KEY')
-			if not api_key:
-				return 'Error: OPENAI_API_KEY not set in config or environment'
+			# Priority: argument > config.json > env var
+			llm_api_key = api_key or llm_config.get('api_key') or os.getenv('OPENAI_API_KEY')
+			if not llm_api_key:
+				return 'Error: OPENAI_API_KEY not set (provide via api_key argument, config.json, or environment variable)'
 
 			# Override model if provided in tool call
 			if model != llm_config.get('model', 'gpt-4o'):
@@ -609,21 +652,32 @@ class BrowserUseServer:
 			else:
 				llm_model = llm_config.get('model', 'gpt-4o')
 
+			# Priority: argument > config.json > default
+			llm_temperature = temperature if temperature is not None else llm_config.get('temperature', 0.7)
+
 			llm = ChatOpenAI(
 				model=llm_model,
-				api_key=api_key,
-				temperature=llm_config.get('temperature', 0.7),
+				api_key=llm_api_key,
+				temperature=llm_temperature,
 			)
 
-		# Get profile config and merge with tool parameters
+		# Get profile config and merge with tool parameters (arguments override config.json)
 		profile_config = get_default_profile(self.config)
 		print(f"🔧 [MCP] Profile config from get_default_profile: {profile_config}", file=sys.stderr)
 
-		# Override allowed_domains if provided in tool call
+		# Override with provided arguments (priority: argument > config.json)
 		if allowed_domains is not None:
 			profile_config['allowed_domains'] = allowed_domains
+		if user_data_dir is not None:
+			profile_config['user_data_dir'] = user_data_dir
+		if profile_directory is not None:
+			profile_config['profile_directory'] = profile_directory
+		if headless is not None:
+			profile_config['headless'] = headless
+		if keep_alive is not None:
+			profile_config['keep_alive'] = keep_alive
 
-		# Create browser profile using config
+		# Create browser profile using merged config
 		print(f"🚀 [MCP] Creating BrowserProfile with config: {profile_config}", file=sys.stderr)
 		profile = BrowserProfile(**profile_config)
 		print(f"📋 [MCP] BrowserProfile created - user_data_dir: {profile.user_data_dir}, keep_alive: {profile.keep_alive}", file=sys.stderr)
