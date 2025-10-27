@@ -2064,6 +2064,10 @@ class BrowserSession(BaseModel):
 				const color = {json.dumps(color)};
 				const duration = {duration_ms};
 
+				// Check for accessibility preference - respect reduced motion
+				const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+				const shouldAnimate = !prefersReducedMotion;
+
 				// Get current scroll position
 				const scrollX = window.pageXOffset || document.documentElement.scrollLeft || 0;
 				const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
@@ -2077,7 +2081,7 @@ class BrowserSession(BaseModel):
 					top: ${{rect.y + scrollY}}px;
 					width: ${{rect.width}}px;
 					height: ${{rect.height}}px;
-					background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%);
+					background: linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.08) 100%);
 					backdrop-filter: blur(20px) saturate(180%) brightness(120%);
 					-webkit-backdrop-filter: blur(20px) saturate(180%) brightness(120%);
 					border: 3px solid ${{color}};
@@ -2085,27 +2089,29 @@ class BrowserSession(BaseModel):
 					pointer-events: none;
 					z-index: 2147483647;
 					box-shadow:
-						0 0 0 1px rgba(255, 255, 255, 0.3) inset,
-						0 0 40px ${{color}}80,
-						0 0 80px ${{color}}40,
-						0 8px 32px rgba(0, 0, 0, 0.2);
-					transform: scale(0.95);
-					opacity: 0;
-					transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+						0 0 0 1px rgba(255, 255, 255, 0.35) inset,
+						0 0 40px ${{color}}90,
+						0 0 80px ${{color}}50,
+						0 8px 32px rgba(0, 0, 0, 0.2),
+						0 4px 16px rgba(0, 0, 0, 0.15);
+					transform: ${{shouldAnimate ? 'scale(0.95)' : 'scale(1)'}};
+					opacity: ${{shouldAnimate ? '0' : '1'}};
+					transition: ${{shouldAnimate ? 'all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none'}};
 				`;
 
-				// Add pulsing glow ring
+				// Add pulsing glow ring (conditionally animated)
 				const glowRing = document.createElement('div');
 				glowRing.style.cssText = `
 					position: absolute;
-					left: -8px;
-					top: -8px;
-					right: -8px;
-					bottom: -8px;
-					border: 2px solid ${{color}}40;
+					left: -10px;
+					top: -10px;
+					right: -10px;
+					bottom: -10px;
+					border: 2.5px solid ${{color}}50;
 					border-radius: 16px;
 					pointer-events: none;
-					animation: liquidGlassPulse 0.8s ease-in-out infinite;
+					box-shadow: 0 0 20px ${{color}}30;
+					animation: ${{shouldAnimate ? 'liquidGlassPulse 0.8s ease-in-out infinite' : 'none'}};
 				`;
 
 				// Inject keyframe animation
@@ -2135,7 +2141,7 @@ class BrowserSession(BaseModel):
 					document.head.appendChild(style);
 				}}
 
-				// Add shimmer effect overlay
+				// Add shimmer effect overlay (conditionally animated)
 				const shimmer = document.createElement('div');
 				shimmer.style.cssText = `
 					position: absolute;
@@ -2152,27 +2158,34 @@ class BrowserSession(BaseModel):
 					background-size: 200% 100%;
 					border-radius: 12px;
 					pointer-events: none;
-					animation: liquidGlassShimmer 1.2s ease-in-out infinite;
+					animation: ${{shouldAnimate ? 'liquidGlassShimmer 1.2s ease-in-out infinite' : 'none'}};
+					opacity: ${{shouldAnimate ? '1' : '0.5'}};
 				`;
 
 				overlay.appendChild(glowRing);
 				overlay.appendChild(shimmer);
 				document.body.appendChild(overlay);
 
-				// Animate in with spring effect
-				requestAnimationFrame(() => {{
-					setTimeout(() => {{
-						overlay.style.transform = 'scale(1)';
-						overlay.style.opacity = '1';
-					}}, 10);
-				}});
+				// Animate in with spring effect (or instantly if reduced motion)
+				if (shouldAnimate) {{
+					requestAnimationFrame(() => {{
+						setTimeout(() => {{
+							overlay.style.transform = 'scale(1)';
+							overlay.style.opacity = '1';
+						}}, 10);
+					}});
+				}}
 
-				// Elegant fade out with scale animation
+				// Elegant fade out with scale animation (or quick removal if reduced motion)
 				setTimeout(() => {{
-					overlay.style.transform = 'scale(1.05)';
-					overlay.style.opacity = '0';
-					overlay.style.transition = 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
-					setTimeout(() => overlay.remove(), 300);
+					if (shouldAnimate) {{
+						overlay.style.transform = 'scale(1.05)';
+						overlay.style.opacity = '0';
+						overlay.style.transition = 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+						setTimeout(() => overlay.remove(), 300);
+					}} else {{
+						overlay.remove();
+					}}
 				}}, duration);
 
 				return {{ created: true }};
@@ -2327,7 +2340,7 @@ class BrowserSession(BaseModel):
 						top: ${{element.y}}px;
 						width: ${{element.width}}px;
 						height: ${{element.height}}px;
-						background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+						background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.06) 100%);
 						backdrop-filter: blur(10px) saturate(180%);
 						-webkit-backdrop-filter: blur(10px) saturate(180%);
 						border: 2px solid ${{colors.main}};
@@ -2338,9 +2351,10 @@ class BrowserSession(BaseModel):
 						margin: 0;
 						padding: 0;
 						box-shadow:
-							0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+							0 0 0 1px rgba(255, 255, 255, 0.15) inset,
 							0 8px 32px ${{colors.glow}},
-							0 2px 8px rgba(0, 0, 0, 0.1);
+							0 4px 16px rgba(0, 0, 0, 0.12),
+							0 1px 4px rgba(0, 0, 0, 0.08);
 						transform: translateZ(0);
 						will-change: transform, box-shadow;
 					`;
@@ -2351,27 +2365,28 @@ class BrowserSession(BaseModel):
 						top: -28px;
 						left: 50%;
 						transform: translateX(-50%);
-						background: linear-gradient(135deg, ${{colors.label}}DD 0%, ${{colors.label}}BB 100%);
+						background: linear-gradient(135deg, ${{colors.label}}EE 0%, ${{colors.label}}CC 100%);
 						backdrop-filter: blur(20px) saturate(180%);
 						-webkit-backdrop-filter: blur(20px) saturate(180%);
 						color: white;
-						padding: 4px 12px;
+						padding: 5px 14px;
 						font-size: 11px;
 						font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 						font-weight: 600;
-						letter-spacing: 0.3px;
+						letter-spacing: 0.4px;
 						border-radius: 10px;
 						white-space: nowrap;
 						z-index: ${{HIGHLIGHT_Z_INDEX + 1}};
 						box-shadow:
-							0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+							0 0 0 1px rgba(255, 255, 255, 0.25) inset,
 							0 4px 24px ${{colors.glow}},
-							0 2px 8px rgba(0, 0, 0, 0.2);
-						border: 1px solid rgba(255, 255, 255, 0.3);
+							0 2px 12px rgba(0, 0, 0, 0.25),
+							0 1px 4px rgba(0, 0, 0, 0.15);
+						border: 1px solid rgba(255, 255, 255, 0.35);
 						outline: none;
 						margin: 0;
 						line-height: 1.4;
-						text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+						text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 						transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
 					`);
 					
