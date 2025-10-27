@@ -2057,101 +2057,122 @@ class BrowserSession(BaseModel):
 				self.logger.debug(f'No coordinates found for backend node {node.backend_node_id}')
 				return
 
-			# Create animated corner brackets that start offset and animate inward
+			# Create premium liquid glass animated highlight with pulsing effect
 			script = f"""
 			(function() {{
 				const rect = {json.dumps({'x': rect.x, 'y': rect.y, 'width': rect.width, 'height': rect.height})};
 				const color = {json.dumps(color)};
 				const duration = {duration_ms};
 
-				// Scale corner size based on element dimensions to ensure gaps between corners
-				const maxCornerSize = 20;
-				const minCornerSize = 8;
-				const cornerSize = Math.max(
-					minCornerSize,
-					Math.min(maxCornerSize, Math.min(rect.width, rect.height) * 0.35)
-				);
-				const borderWidth = 3;
-				const startOffset = 10; // Starting offset in pixels
-				const finalOffset = -3; // Final position slightly outside the element
-
 				// Get current scroll position
 				const scrollX = window.pageXOffset || document.documentElement.scrollLeft || 0;
 				const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
 
-				// Create container for all corners
-				const container = document.createElement('div');
-				container.setAttribute('data-browser-use-interaction-highlight', 'true');
-				container.style.cssText = `
+				// Create premium glassmorphism overlay with Apple liquid glass effect
+				const overlay = document.createElement('div');
+				overlay.setAttribute('data-browser-use-interaction-highlight', 'true');
+				overlay.style.cssText = `
 					position: absolute;
 					left: ${{rect.x + scrollX}}px;
 					top: ${{rect.y + scrollY}}px;
 					width: ${{rect.width}}px;
 					height: ${{rect.height}}px;
+					background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%);
+					backdrop-filter: blur(20px) saturate(180%) brightness(120%);
+					-webkit-backdrop-filter: blur(20px) saturate(180%) brightness(120%);
+					border: 3px solid ${{color}};
+					border-radius: 12px;
 					pointer-events: none;
 					z-index: 2147483647;
+					box-shadow:
+						0 0 0 1px rgba(255, 255, 255, 0.3) inset,
+						0 0 40px ${{color}}80,
+						0 0 80px ${{color}}40,
+						0 8px 32px rgba(0, 0, 0, 0.2);
+					transform: scale(0.95);
+					opacity: 0;
+					transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 				`;
 
-				// Create 4 corner brackets
-				const corners = [
-					{{ pos: 'top-left', startX: -startOffset, startY: -startOffset, finalX: finalOffset, finalY: finalOffset }},
-					{{ pos: 'top-right', startX: startOffset, startY: -startOffset, finalX: -finalOffset, finalY: finalOffset }},
-					{{ pos: 'bottom-left', startX: -startOffset, startY: startOffset, finalX: finalOffset, finalY: -finalOffset }},
-					{{ pos: 'bottom-right', startX: startOffset, startY: startOffset, finalX: -finalOffset, finalY: -finalOffset }}
-				];
+				// Add pulsing glow ring
+				const glowRing = document.createElement('div');
+				glowRing.style.cssText = `
+					position: absolute;
+					left: -8px;
+					top: -8px;
+					right: -8px;
+					bottom: -8px;
+					border: 2px solid ${{color}}40;
+					border-radius: 16px;
+					pointer-events: none;
+					animation: liquidGlassPulse 1.5s ease-in-out infinite;
+				`;
 
-				corners.forEach(corner => {{
-					const bracket = document.createElement('div');
-					bracket.style.cssText = `
-						position: absolute;
-						width: ${{cornerSize}}px;
-						height: ${{cornerSize}}px;
-						pointer-events: none;
-						transition: all 0.15s ease-out;
+				// Inject keyframe animation
+				if (!document.getElementById('liquid-glass-keyframes')) {{
+					const style = document.createElement('style');
+					style.id = 'liquid-glass-keyframes';
+					style.textContent = `
+						@keyframes liquidGlassPulse {{
+							0%, 100% {{
+								transform: scale(1);
+								opacity: 0.6;
+							}}
+							50% {{
+								transform: scale(1.08);
+								opacity: 0.3;
+							}}
+						}}
+						@keyframes liquidGlassShimmer {{
+							0% {{
+								background-position: -200% center;
+							}}
+							100% {{
+								background-position: 200% center;
+							}}
+						}}
 					`;
+					document.head.appendChild(style);
+				}}
 
-					// Position corners
-					if (corner.pos === 'top-left') {{
-						bracket.style.top = '0';
-						bracket.style.left = '0';
-						bracket.style.borderTop = `${{borderWidth}}px solid ${{color}}`;
-						bracket.style.borderLeft = `${{borderWidth}}px solid ${{color}}`;
-						bracket.style.transform = `translate(${{corner.startX}}px, ${{corner.startY}}px)`;
-					}} else if (corner.pos === 'top-right') {{
-						bracket.style.top = '0';
-						bracket.style.right = '0';
-						bracket.style.borderTop = `${{borderWidth}}px solid ${{color}}`;
-						bracket.style.borderRight = `${{borderWidth}}px solid ${{color}}`;
-						bracket.style.transform = `translate(${{corner.startX}}px, ${{corner.startY}}px)`;
-					}} else if (corner.pos === 'bottom-left') {{
-						bracket.style.bottom = '0';
-						bracket.style.left = '0';
-						bracket.style.borderBottom = `${{borderWidth}}px solid ${{color}}`;
-						bracket.style.borderLeft = `${{borderWidth}}px solid ${{color}}`;
-						bracket.style.transform = `translate(${{corner.startX}}px, ${{corner.startY}}px)`;
-					}} else if (corner.pos === 'bottom-right') {{
-						bracket.style.bottom = '0';
-						bracket.style.right = '0';
-						bracket.style.borderBottom = `${{borderWidth}}px solid ${{color}}`;
-						bracket.style.borderRight = `${{borderWidth}}px solid ${{color}}`;
-						bracket.style.transform = `translate(${{corner.startX}}px, ${{corner.startY}}px)`;
-					}}
+				// Add shimmer effect overlay
+				const shimmer = document.createElement('div');
+				shimmer.style.cssText = `
+					position: absolute;
+					top: 0;
+					left: 0;
+					right: 0;
+					bottom: 0;
+					background: linear-gradient(
+						90deg,
+						transparent 0%,
+						rgba(255, 255, 255, 0.3) 50%,
+						transparent 100%
+					);
+					background-size: 200% 100%;
+					border-radius: 12px;
+					pointer-events: none;
+					animation: liquidGlassShimmer 2s ease-in-out infinite;
+				`;
 
-					container.appendChild(bracket);
+				overlay.appendChild(glowRing);
+				overlay.appendChild(shimmer);
+				document.body.appendChild(overlay);
 
-					// Animate to final position slightly outside the element
+				// Animate in with spring effect
+				requestAnimationFrame(() => {{
 					setTimeout(() => {{
-						bracket.style.transform = `translate(${{corner.finalX}}px, ${{corner.finalY}}px)`;
+						overlay.style.transform = 'scale(1)';
+						overlay.style.opacity = '1';
 					}}, 10);
 				}});
 
-				document.body.appendChild(container);
-
-				// Auto-remove after duration
+				// Elegant fade out with scale animation
 				setTimeout(() => {{
-					container.style.opacity = '0';
-					container.style.transition = 'opacity 0.3s ease-out';
-					setTimeout(() => container.remove(), 300);
+					overlay.style.transform = 'scale(1.05)';
+					overlay.style.opacity = '0';
+					overlay.style.transition = 'all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)';
+					setTimeout(() => overlay.remove(), 500);
 				}}, duration);
 
 				return {{ created: true }};
@@ -2280,8 +2301,23 @@ class BrowserSession(BaseModel):
 					return element;
 				}}
 				
-				// Add highlights for each element
+				// Premium color scheme for different element types (Apple Liquid Glass style)
+				const getElementColor = (elementName) => {{
+					const colors = {{
+						'button': {{ main: '#00D9FF', glow: 'rgba(0, 217, 255, 0.3)', label: '#00D9FF' }},
+						'input': {{ main: '#7B68EE', glow: 'rgba(123, 104, 238, 0.3)', label: '#7B68EE' }},
+						'select': {{ main: '#FF6B9D', glow: 'rgba(255, 107, 157, 0.3)', label: '#FF6B9D' }},
+						'a': {{ main: '#00E5A0', glow: 'rgba(0, 229, 160, 0.3)', label: '#00E5A0' }},
+						'textarea': {{ main: '#FFB74D', glow: 'rgba(255, 183, 77, 0.3)', label: '#FFB74D' }},
+						'default': {{ main: '#A78BFA', glow: 'rgba(167, 139, 250, 0.3)', label: '#A78BFA' }}
+					}};
+					return colors[elementName.toLowerCase()] || colors.default;
+				}};
+
+				// Add highlights for each element with Apple Liquid Glass effect
 				interactiveElements.forEach((element, index) => {{
+					const colors = getElementColor(element.element_name);
+
 					const highlight = document.createElement('div');
 					highlight.setAttribute('data-browser-use-highlight', 'element');
 					highlight.setAttribute('data-element-id', element.backend_node_id);
@@ -2291,36 +2327,52 @@ class BrowserSession(BaseModel):
 						top: ${{element.y}}px;
 						width: ${{element.width}}px;
 						height: ${{element.height}}px;
-						outline: 2px dashed #4a90e2;
-						outline-offset: -2px;
-						background: transparent;
+						background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+						backdrop-filter: blur(10px) saturate(180%);
+						-webkit-backdrop-filter: blur(10px) saturate(180%);
+						border: 2px solid ${{colors.main}};
+						border-radius: 8px;
 						pointer-events: none;
-						box-sizing: content-box;
-						transition: outline 0.2s ease;
+						box-sizing: border-box;
+						transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
 						margin: 0;
 						padding: 0;
-						border: none;
+						box-shadow:
+							0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+							0 8px 32px ${{colors.glow}},
+							0 2px 8px rgba(0, 0, 0, 0.1);
+						transform: translateZ(0);
+						will-change: transform, box-shadow;
 					`;
-					
-					// Enhanced label with backend node ID
+
+					// Premium glassmorphism label with Apple style
 					const label = createTextElement('div', element.backend_node_id, `
 						position: absolute;
-						top: -20px;
-						left: 0;
-						background-color: #4a90e2;
+						top: -28px;
+						left: 50%;
+						transform: translateX(-50%);
+						background: linear-gradient(135deg, ${{colors.label}}DD 0%, ${{colors.label}}BB 100%);
+						backdrop-filter: blur(20px) saturate(180%);
+						-webkit-backdrop-filter: blur(20px) saturate(180%);
 						color: white;
-						padding: 2px 6px;
+						padding: 4px 12px;
 						font-size: 11px;
-						font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-						font-weight: bold;
-						border-radius: 3px;
+						font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+						font-weight: 600;
+						letter-spacing: 0.3px;
+						border-radius: 10px;
 						white-space: nowrap;
 						z-index: ${{HIGHLIGHT_Z_INDEX + 1}};
-						box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-						border: none;
+						box-shadow:
+							0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+							0 4px 24px ${{colors.glow}},
+							0 2px 8px rgba(0, 0, 0, 0.2);
+						border: 1px solid rgba(255, 255, 255, 0.3);
 						outline: none;
 						margin: 0;
-						line-height: 1.2;
+						line-height: 1.4;
+						text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+						transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
 					`);
 					
 					highlight.appendChild(label);

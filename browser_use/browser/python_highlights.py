@@ -69,14 +69,24 @@ def cleanup_font_cache() -> None:
 	_FONT_CACHE.clear()
 
 
-# Color scheme for different element types
+# Premium glassmorphism color scheme with vibrant gradients
 ELEMENT_COLORS = {
-	'button': '#FF6B6B',  # Red for buttons
-	'input': '#4ECDC4',  # Teal for inputs
-	'select': '#45B7D1',  # Blue for dropdowns
-	'a': '#96CEB4',  # Green for links
-	'textarea': '#FF8C42',  # Orange for text areas (was yellow, now more visible)
-	'default': '#DDA0DD',  # Light purple for other interactive elements
+	'button': '#00D9FF',  # Cyan glow for buttons - premium feel
+	'input': '#7B68EE',  # Purple-blue for inputs - elegant
+	'select': '#FF6B9D',  # Pink-rose for dropdowns - modern
+	'a': '#00E5A0',  # Emerald green for links - fresh
+	'textarea': '#FFB74D',  # Warm amber for text areas - inviting
+	'default': '#A78BFA',  # Soft purple for other interactive elements - premium
+}
+
+# Secondary glow colors for glassmorphism effect (lighter variants)
+ELEMENT_GLOW_COLORS = {
+	'button': '#80ECFF',  # Light cyan
+	'input': '#B8A9FF',  # Light purple
+	'select': '#FFB5D0',  # Light pink
+	'a': '#80F2CE',  # Light emerald
+	'textarea': '#FFDAA6',  # Light amber
+	'default': '#D8CCFF',  # Light purple
 }
 
 # Element type mappings
@@ -100,6 +110,15 @@ def get_element_color(tag_name: str, element_type: str | None = None) -> str:
 	return ELEMENT_COLORS.get(tag_name.lower(), ELEMENT_COLORS['default'])
 
 
+def get_element_glow_color(tag_name: str, element_type: str | None = None) -> str:
+	"""Get glow color for glassmorphism effect."""
+	if tag_name == 'input' and element_type:
+		if element_type in ['button', 'submit']:
+			return ELEMENT_GLOW_COLORS['button']
+
+	return ELEMENT_GLOW_COLORS.get(tag_name.lower(), ELEMENT_GLOW_COLORS['default'])
+
+
 def should_show_index_overlay(backend_node_id: int | None) -> bool:
 	"""Determine if index overlay should be shown."""
 	return backend_node_id is not None
@@ -114,35 +133,46 @@ def draw_enhanced_bounding_box_with_text(
 	element_type: str = 'div',
 	image_size: tuple[int, int] = (2000, 1500),
 	device_pixel_ratio: float = 1.0,
+	glow_color: str | None = None,
 ) -> None:
-	"""Draw an enhanced bounding box with much bigger index containers and dashed borders."""
+	"""Draw a premium glassmorphism bounding box with glowing borders and elegant styling."""
 	x1, y1, x2, y2 = bbox
 
-	# Draw dashed bounding box with pattern: 1 line, 2 spaces, 1 line, 2 spaces...
-	dash_length = 4
-	gap_length = 8
-	line_width = 2
+	# Premium glassmorphism parameters
+	dash_length = 6  # Longer dashes for cleaner look
+	gap_length = 4   # Shorter gaps for more continuous feel
+	line_width = 3   # Thicker for better visibility
 
-	# Helper function to draw dashed line
-	def draw_dashed_line(start_x, start_y, end_x, end_y):
+	# Helper function to draw premium dashed line with glow effect
+	def draw_premium_dashed_line(start_x, start_y, end_x, end_y):
 		if start_x == end_x:  # Vertical line
 			y = start_y
 			while y < end_y:
 				dash_end = min(y + dash_length, end_y)
+				# Outer glow layer (lighter color)
+				if glow_color:
+					draw.line([(start_x - 1, y), (start_x - 1, dash_end)], fill=glow_color, width=line_width + 2)
+					draw.line([(start_x + 1, y), (start_x + 1, dash_end)], fill=glow_color, width=line_width + 2)
+				# Main line (vibrant color)
 				draw.line([(start_x, y), (start_x, dash_end)], fill=color, width=line_width)
 				y += dash_length + gap_length
 		else:  # Horizontal line
 			x = start_x
 			while x < end_x:
 				dash_end = min(x + dash_length, end_x)
+				# Outer glow layer (lighter color)
+				if glow_color:
+					draw.line([(x, start_y - 1), (dash_end, start_y - 1)], fill=glow_color, width=line_width + 2)
+					draw.line([(x, start_y + 1), (dash_end, start_y + 1)], fill=glow_color, width=line_width + 2)
+				# Main line (vibrant color)
 				draw.line([(x, start_y), (dash_end, start_y)], fill=color, width=line_width)
 				x += dash_length + gap_length
 
-	# Draw dashed rectangle
-	draw_dashed_line(x1, y1, x2, y1)  # Top
-	draw_dashed_line(x2, y1, x2, y2)  # Right
-	draw_dashed_line(x2, y2, x1, y2)  # Bottom
-	draw_dashed_line(x1, y2, x1, y1)  # Left
+	# Draw glowing dashed rectangle with premium effect
+	draw_premium_dashed_line(x1, y1, x2, y1)  # Top
+	draw_premium_dashed_line(x2, y1, x2, y2)  # Right
+	draw_premium_dashed_line(x2, y2, x1, y2)  # Bottom
+	draw_premium_dashed_line(x1, y2, x1, y1)  # Left
 
 	# Draw much bigger index overlay if we have index text
 	if text:
@@ -221,10 +251,46 @@ def draw_enhanced_bounding_box_with_text(
 				bg_y2 -= offset
 				text_y -= offset
 
-			# Draw bigger background rectangle with thicker border
-			draw.rectangle([bg_x1, bg_y1, bg_x2, bg_y2], fill=color, outline='white', width=2)
+			# Premium glassmorphism label with layered shadows and glow
+			# Layer 1: Outer glow shadow (soft blur effect)
+			if glow_color:
+				shadow_offset = 3
+				draw.rectangle(
+					[bg_x1 - shadow_offset, bg_y1 - shadow_offset, bg_x2 + shadow_offset, bg_y2 + shadow_offset],
+					fill=glow_color,
+					outline=None
+				)
 
-			# Draw white text centered in the index box
+			# Layer 2: Main background with vibrant color
+			draw.rectangle([bg_x1, bg_y1, bg_x2, bg_y2], fill=color, outline=None)
+
+			# Layer 3: Top highlight for glass effect (white semi-transparent overlay on top half)
+			highlight_height = container_height // 3
+			# Simulate semi-transparency by using a lighter tint
+			try:
+				# Convert hex color to RGB for blending
+				from PIL import ImageColor
+				rgb_color = ImageColor.getcolor(color, "RGB")
+				# Ensure we have a tuple of RGB values
+				if isinstance(rgb_color, tuple) and len(rgb_color) >= 3:
+					# Create lighter version by blending with white
+					highlight_color = tuple(min(255, int(c * 0.4 + 255 * 0.6)) for c in rgb_color[:3])
+					highlight_hex = '#{:02x}{:02x}{:02x}'.format(*highlight_color)
+					draw.rectangle(
+						[bg_x1, bg_y1, bg_x2, bg_y1 + highlight_height],
+						fill=highlight_hex,
+						outline=None
+					)
+			except:
+				pass  # Skip highlight if color conversion fails
+
+			# Layer 4: Subtle inner border for depth
+			draw.rectangle([bg_x1, bg_y1, bg_x2, bg_y2], fill=None, outline='white', width=1)
+
+			# Draw premium text with subtle shadow for depth
+			# Shadow layer
+			draw.text((text_x + 1, text_y + 1), text, fill='#00000040', font=big_font or font)
+			# Main text (crisp white)
 			draw.text((text_x, text_y), text, fill='white', font=big_font or font)
 
 		except Exception as e:
@@ -379,6 +445,7 @@ def process_element_highlight(
 			element_type = element.attributes.get('type')
 
 		color = get_element_color(tag_name, element_type)
+		glow_color = get_element_glow_color(tag_name, element_type)
 
 		# Get element index for overlay and apply filtering
 		backend_node_id = getattr(element, 'backend_node_id', None)
@@ -395,9 +462,9 @@ def process_element_highlight(
 				# Always show ID when filter is disabled
 				index_text = str(backend_node_id)
 
-		# Draw enhanced bounding box with bigger index
+		# Draw premium glassmorphism bounding box with Apple liquid glass style
 		draw_enhanced_bounding_box_with_text(
-			draw, (x1, y1, x2, y2), color, index_text, font, tag_name, image_size, device_pixel_ratio
+			draw, (x1, y1, x2, y2), color, index_text, font, tag_name, image_size, device_pixel_ratio, glow_color
 		)
 
 	except Exception as e:
