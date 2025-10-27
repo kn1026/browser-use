@@ -69,24 +69,24 @@ def cleanup_font_cache() -> None:
 	_FONT_CACHE.clear()
 
 
-# Premium glassmorphism color scheme with vibrant gradients
+# Professional liquid glass color scheme - sophisticated neutral palette
 ELEMENT_COLORS = {
-	'button': '#00D9FF',  # Cyan glow for buttons - premium feel
-	'input': '#7B68EE',  # Purple-blue for inputs - elegant
-	'select': '#FF6B9D',  # Pink-rose for dropdowns - modern
-	'a': '#00E5A0',  # Emerald green for links - fresh
-	'textarea': '#FFB74D',  # Warm amber for text areas - inviting
-	'default': '#A78BFA',  # Soft purple for other interactive elements - premium
+	'button': '#8FA3B8',  # Steel blue-gray for buttons - strong yet refined
+	'input': '#A0B4C8',  # Soft steel blue for inputs - subtle elegance
+	'select': '#B8C5D0',  # Light steel for dropdowns - clean minimal
+	'a': '#7A92A8',  # Deep steel blue for links - sophisticated
+	'textarea': '#C0CCD8',  # Pale steel for text areas - understated
+	'default': '#9CADB8',  # Medium steel for other elements - balanced
 }
 
-# Secondary glow colors for glassmorphism effect (lighter variants)
+# Secondary glow colors for glassmorphism effect (subtle lighter variants)
 ELEMENT_GLOW_COLORS = {
-	'button': '#80ECFF',  # Light cyan
-	'input': '#B8A9FF',  # Light purple
-	'select': '#FFB5D0',  # Light pink
-	'a': '#80F2CE',  # Light emerald
-	'textarea': '#FFDAA6',  # Light amber
-	'default': '#D8CCFF',  # Light purple
+	'button': '#B5C5D8',  # Light steel blue
+	'input': '#C0D0E0',  # Soft light steel
+	'select': '#D8E0E8',  # Very light steel
+	'a': '#A0B8C8',  # Medium light steel
+	'textarea': '#E0E8F0',  # Pale light steel
+	'default': '#B8C8D8',  # Balanced light steel
 }
 
 # Element type mappings

@@ -632,7 +632,7 @@ class BrowserProfile(BrowserConnectArgs, BrowserLaunchPersistentContextArgs, Bro
 	)
 	paint_order_filtering: bool = Field(default=True, description='Enable paint order filtering. Slightly experimental.')
 	interaction_highlight_color: str = Field(
-		default='rgb(0, 217, 255)',  # Premium cyan glow - Apple Liquid Glass style
+		default='rgb(156, 173, 184)',  # Professional steel gray - sophisticated liquid glass
 		description='Color to use for highlighting elements during interactions (CSS color string).',
 	)
 	interaction_highlight_duration: float = Field(default=0.6, description='Duration in seconds to show interaction highlights (quick and smooth).')

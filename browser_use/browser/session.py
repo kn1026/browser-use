@@ -2314,15 +2314,15 @@ class BrowserSession(BaseModel):
 					return element;
 				}}
 				
-				// Premium color scheme for different element types (Apple Liquid Glass style)
+				// Professional liquid glass color scheme - sophisticated neutral palette
 				const getElementColor = (elementName) => {{
 					const colors = {{
-						'button': {{ main: '#00D9FF', glow: 'rgba(0, 217, 255, 0.3)', label: '#00D9FF' }},
-						'input': {{ main: '#7B68EE', glow: 'rgba(123, 104, 238, 0.3)', label: '#7B68EE' }},
-						'select': {{ main: '#FF6B9D', glow: 'rgba(255, 107, 157, 0.3)', label: '#FF6B9D' }},
-						'a': {{ main: '#00E5A0', glow: 'rgba(0, 229, 160, 0.3)', label: '#00E5A0' }},
-						'textarea': {{ main: '#FFB74D', glow: 'rgba(255, 183, 77, 0.3)', label: '#FFB74D' }},
-						'default': {{ main: '#A78BFA', glow: 'rgba(167, 139, 250, 0.3)', label: '#A78BFA' }}
+						'button': {{ main: '#8FA3B8', glow: 'rgba(143, 163, 184, 0.3)', label: '#8FA3B8' }},
+						'input': {{ main: '#A0B4C8', glow: 'rgba(160, 180, 200, 0.3)', label: '#A0B4C8' }},
+						'select': {{ main: '#B8C5D0', glow: 'rgba(184, 197, 208, 0.3)', label: '#B8C5D0' }},
+						'a': {{ main: '#7A92A8', glow: 'rgba(122, 146, 168, 0.3)', label: '#7A92A8' }},
+						'textarea': {{ main: '#C0CCD8', glow: 'rgba(192, 204, 216, 0.3)', label: '#C0CCD8' }},
+						'default': {{ main: '#9CADB8', glow: 'rgba(156, 173, 184, 0.3)', label: '#9CADB8' }}
 					}};
 					return colors[elementName.toLowerCase()] || colors.default;
 				}};
