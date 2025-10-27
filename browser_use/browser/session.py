@@ -2091,7 +2091,7 @@ class BrowserSession(BaseModel):
 						0 8px 32px rgba(0, 0, 0, 0.2);
 					transform: scale(0.95);
 					opacity: 0;
-					transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+					transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 				`;
 
 				// Add pulsing glow ring
@@ -2105,7 +2105,7 @@ class BrowserSession(BaseModel):
 					border: 2px solid ${{color}}40;
 					border-radius: 16px;
 					pointer-events: none;
-					animation: liquidGlassPulse 1.5s ease-in-out infinite;
+					animation: liquidGlassPulse 0.8s ease-in-out infinite;
 				`;
 
 				// Inject keyframe animation
@@ -2152,7 +2152,7 @@ class BrowserSession(BaseModel):
 					background-size: 200% 100%;
 					border-radius: 12px;
 					pointer-events: none;
-					animation: liquidGlassShimmer 2s ease-in-out infinite;
+					animation: liquidGlassShimmer 1.2s ease-in-out infinite;
 				`;
 
 				overlay.appendChild(glowRing);
@@ -2171,8 +2171,8 @@ class BrowserSession(BaseModel):
 				setTimeout(() => {{
 					overlay.style.transform = 'scale(1.05)';
 					overlay.style.opacity = '0';
-					overlay.style.transition = 'all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1)';
-					setTimeout(() => overlay.remove(), 500);
+					overlay.style.transition = 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+					setTimeout(() => overlay.remove(), 300);
 				}}, duration);
 
 				return {{ created: true }};
@@ -2334,7 +2334,7 @@ class BrowserSession(BaseModel):
 						border-radius: 8px;
 						pointer-events: none;
 						box-sizing: border-box;
-						transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+						transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
 						margin: 0;
 						padding: 0;
 						box-shadow:
@@ -2372,7 +2372,7 @@ class BrowserSession(BaseModel):
 						margin: 0;
 						line-height: 1.4;
 						text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-						transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+						transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
 					`);
 					
 					highlight.appendChild(label);

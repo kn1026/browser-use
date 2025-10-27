@@ -635,7 +635,7 @@ class BrowserProfile(BrowserConnectArgs, BrowserLaunchPersistentContextArgs, Bro
 		default='rgb(0, 217, 255)',  # Premium cyan glow - Apple Liquid Glass style
 		description='Color to use for highlighting elements during interactions (CSS color string).',
 	)
-	interaction_highlight_duration: float = Field(default=1.0, description='Duration in seconds to show interaction highlights.')
+	interaction_highlight_duration: float = Field(default=0.6, description='Duration in seconds to show interaction highlights (quick and smooth).')
 
 	# --- Downloads ---
 	auto_download_pdfs: bool = Field(default=True, description='Automatically download PDFs when navigating to PDF viewer pages.')
